@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Management</title>
+    <!-- Materialize CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" rel="stylesheet">
+    <!-- jQuery -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <!-- Materialize JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+    <!-- CSRF Token -->
+    <script>
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        const csrftoken = getCookie('csrftoken');
+    </script>
+</head>
+<body>
+    {% extends 'base.html' %}
+
+    {% block content %}
+    <h2 class="center-align">Student Records</h2>
+    <div class="row" id="student-list"></div>
+    <div class="fixed-action-btn">
+        <a class="btn-floating btn-large red" id="add-student">
+            <i class="large material-icons">add</i>
+        </a>
+    </div>
+
+    <!-- Modal for Adding/Editing Student -->
+    <div id="student-modal" class="modal">
+        <div class="modal-content">
+            <h4>Student Form</h4>
+            <div class="row">
+                <form class="col s12" id="student-form">
+                    <div class="row">
+                        <div class="input-field col s6">
+                            <input id="name" type="text" name="name" required>
+                            <label for="name">Name</label>
+                        </div>
+                        <div class="input-field col s6">
+                            <input id="age" type="number" name="age" required>
+                            <label for="age">Age</label>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="input-field col s12">
+                            <input id="email" type="email" name="email" required>
+                            <label for="email">Email</label>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="input-field col s12">
+                            <input id="course" type="text" name="course" required>
+                            <label for="course">Course</label>
+                        </div>
+                    </div>
+                    <input type="hidden" name="id" id="student-id">
+                    <button class="btn waves-effect waves-light" type="submit" name="action">Save</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        $(document).ready(function(){
+            $('.modal').modal(); // Initialize modals
+            loadStudents(); // Load students on page load
+
+            $('#add-student').click(function(){
+                $('#student-form')[0].reset();
+                $('#student-id').val('');
+                $('#student-modal').modal('open');
+            });
+
+            $('#student-form').submit(function(event){
+                event.preventDefault();
+                var formData = $(this).serialize();
+                var studentId = $('#student-id').val();
+                console.log('Form data being sent:', formData); // Debug statement
+                $.ajax({
+                    url: studentId ? '/api/students/' + studentId + '/' : '/api/students/',
+                    type: studentId ? 'PUT' : 'POST',
+                    data: formData,
+                    headers: {
+                        'X-CSRFToken': csrftoken
+                    },
+                    success: function(response) {
+                        $('#student-modal').modal('close');
+                        loadStudents();
+                    },
+                    error: function(xhr, status, error) {
+                        console.log('Error:', xhr.responseText); // Debug statement
+                    }
+                });
+            });
+
+            function loadStudents() {
+                $.ajax({
+                    url: '/api/students/',
+                    type: 'GET',
+                    success: function(response) {
+                        var studentList = '';
+                        $.each(response, function(index, student) {
+                            studentList += `
+                                <div class="col s12 m6 l4">
+                                    <div class="card">
+                                        <div class="card-content">
+                                            <span class="card-title">${student.name}</span>
+                                            <p>Email: ${student.email}</p>
+                                            <p>Course: ${student.course}</p>
+                                            <p>Age: ${student.age}</p>
+                                        </div>
+                                        <div class="card-action">
+                                            <a href="#" class="edit-student" data-id="${student.id}">Edit</a>
+                                            <a href="#" class="delete-student" data-id="${student.id}">Delete</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                        $('#student-list').html(studentList);
+                    }
+                });
+            }
+
+            $(document).on('click', '.edit-student', function(){
+                var studentId = $(this).data('id');
+                $.ajax({
+                    url: '/api/students/' + studentId + '/',
+                    type: 'GET',
+                    success: function(response) {
+                        $('#name').val(response.name);
+                        $('#age').val(response.age);
+                        $('#email').val(response.email);
+                        $('#course').val(response.course);
+                        $('#student-id').val(response.id);
+                        M.updateTextFields(); // Update materialize fields
+                        $('#student-modal').modal('open');
+                    }
+                });
+            });
+
+            $(document).on('click', '.delete-student', function(){
+                var studentId = $(this).data('id');
+                $.ajax({
+                    url: '/api/students/' + studentId + '/',
+                    type: 'DELETE',
+                    headers: {
+                        'X-CSRFToken': csrftoken
+                    },
+                    success: function(response) {
+                        loadStudents();
+                    }
+                });
+            });
+        });
+    </script>
+    {% endblock %}
+</body>
+</html>
