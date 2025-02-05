@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz App</title>
+    <!-- Materialize CSS CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+    <!-- Google Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(120deg, #ff7043, #26a69a);
+            transition: background 0.5s ease-in-out;
+            color: white;
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        .container {
+            margin-top: 50px;
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+            transition: transform 0.3s ease-in-out;
+        }
+        .card:hover {
+            transform: scale(1.03);
+        }
+        .progress {
+            height: 10px;
+            background: rgba(255, 255, 255, 0.2);
+        }
+        .determinate {
+            background: #ffd54f;
+        }
+        button {
+            width: 100%;
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h3 class="white-text">Quiz App</h3>
+        <div class="progress">
+            <div id="progress-bar" class="determinate" style="width: 0%;"></div>
+        </div>
+        <p id="timer" class="flow-text"></p>
+        <div class="card">
+            <h5 id="question">Loading...</h5>
+            <div id="answers"></div>
+        </div>
+        <h5>Score: <span id="score">0</span></h5>
+        <button class="btn waves-effect waves-light red" onclick="nextQuestion()">Next</button>
+    </div>
+
+    <!-- Materialize JavaScript CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+    <script>
+        // Quiz Data
+        const questions = [
+            { question: "What is the capital of France?", answers: ["Paris", "Berlin", "Madrid", "Rome"], correct: "Paris" },
+            { question: "What is 5 + 7?", answers: ["10", "12", "14", "15"], correct: "12" },
+            { question: "Who wrote 'Hamlet'?", answers: ["Shakespeare", "Dickens", "Austen", "Hemingway"], correct: "Shakespeare" },
+            { question: "What is the speed of light?", answers: ["299,792 km/s", "150,000 km/s", "3,000 km/s", "1,000 km/s"], correct: "299,792 km/s" }
+        ];
+
+        let currentQuestion = 0;
+        let score = 0;
+        let timeLeft = 10;
+        let timerInterval;
+
+        // Shuffle questions
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        shuffle(questions); // Randomize questions on load
+
+        function startQuiz() {
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            if (currentQuestion >= questions.length) {
+                document.querySelector('.card').innerHTML = `<h5>Quiz Completed! Your score is ${score}.</h5>`;
+                document.getElementById('progress-bar').style.width = '100%';
+                document.getElementById('timer').textContent = "";
+                return;
+            }
+
+            const q = questions[currentQuestion];
+            document.getElementById("question").textContent = q.question;
+            const answersDiv = document.getElementById("answers");
+            answersDiv.innerHTML = "";
+            
+            // Shuffle answers
+            let shuffledAnswers = [...q.answers].sort(() => Math.random() - 0.5);
+
+            shuffledAnswers.forEach(answer => {
+                const btn = document.createElement("button");
+                btn.textContent = answer;
+                btn.classList.add("btn", "waves-effect", "waves-light");
+                btn.onclick = () => checkAnswer(answer);
+                answersDiv.appendChild(btn);
+            });
+
+            // Reset Timer
+            timeLeft = 10;
+            document.getElementById("timer").textContent = `Time Left: ${timeLeft}s`;
+            clearInterval(timerInterval);
+            timerInterval = setInterval(updateTimer, 1000);
+
+            // Update progress bar
+            let progress = ((currentQuestion / questions.length) * 100) + "%";
+            document.getElementById("progress-bar").style.width = progress;
+        }
+
+        function updateTimer() {
+            timeLeft--;
+            document.getElementById("timer").textContent = `Time Left: ${timeLeft}s`;
+            if (timeLeft <= 0) {
+                clearInterval(timerInterval);
+                nextQuestion();
+            }
+        }
+
+        function checkAnswer(answer) {
+            if (answer === questions[currentQuestion].correct) {
+                score++;
+                document.getElementById("score").textContent = score;
+                document.body.style.background = "linear-gradient(120deg, #4caf50, #26a69a)"; // Green transition
+            } else {
+                document.body.style.background = "linear-gradient(120deg, #e53935, #26a69a)"; // Red transition
+            }
+
+            setTimeout(() => {
+                document.body.style.background = "linear-gradient(120deg, #ff7043, #26a69a)"; // Restore theme
+                nextQuestion();
+            }, 800);
+        }
+
+        function nextQuestion() {
+            clearInterval(timerInterval);
+            currentQuestion++;
+            loadQuestion();
+        }
+
+        // Start quiz
+        document.addEventListener("DOMContentLoaded", startQuiz);
+    </script>
+
+</body>
+</html>
